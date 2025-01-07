@@ -1,11 +1,12 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QPushButton, QLabel,
-    QFileDialog, QWidget, QRadioButton, QButtonGroup, QHBoxLayout, QScrollArea, QGridLayout
+    QFileDialog, QWidget, QRadioButton, QButtonGroup, QHBoxLayout, QScrollArea, QGridLayout, QCheckBox, QMessageBox
 )
 from PyQt5.QtGui import QPixmap, QPalette, QColor
 from PyQt5.QtCore import Qt, QDateTime
 from PIL import Image
+import random
 
 
 class ImageCollageApp(QMainWindow):
@@ -13,7 +14,7 @@ class ImageCollageApp(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("py-image-stitcher")
-        self.resize(1200, 800)
+        self.resize(1200, 1000)
         self.center_window()
         self.apply_dark_theme()
 
@@ -34,11 +35,13 @@ class ImageCollageApp(QMainWindow):
         # Buttons
         self.add_images_button = QPushButton("Add Images")
         self.add_images_button.clicked.connect(self.add_images)
+        self.add_images_button.setToolTip("Click to add images to the collage.")
         self.add_images_button.setStyleSheet("background-color: #3C3C3C; color: white;")
         self.main_layout.addWidget(self.add_images_button)
 
         self.export_button = QPushButton("Export Collage")
         self.export_button.clicked.connect(self.export_collage)
+        self.export_button.setToolTip("Export the created collage to a file.")
         self.export_button.setStyleSheet("background-color: #3C3C3C; color: white;")
         self.main_layout.addWidget(self.export_button)
 
@@ -50,7 +53,9 @@ class ImageCollageApp(QMainWindow):
         self.vertical_button = QRadioButton("Vertical")
 
         self.horizontal_button.setStyleSheet("color: white;")
+        self.horizontal_button.setToolTip("Stitch images horizontally.")
         self.vertical_button.setStyleSheet("color: white;")
+        self.vertical_button.setToolTip("Stitch images vertically.")
 
         self.direction_group = QButtonGroup()
         self.direction_group.addButton(self.horizontal_button)
@@ -64,6 +69,17 @@ class ImageCollageApp(QMainWindow):
         self.direction_layout.addWidget(self.vertical_button)
         self.main_layout.addLayout(self.direction_layout)
 
+        # Randomize toggle
+        self.randomize_checkbox = QCheckBox("Randomize Image Order")
+        self.randomize_checkbox.setToolTip("Shuffle the order of images in the collage.")
+        self.randomize_checkbox.setStyleSheet("color: white;")
+        self.main_layout.addWidget(self.randomize_checkbox)
+
+        # Label for dimensions
+        self.dimensions_label = QLabel("Calculated Dimensions: -")
+        self.dimensions_label.setStyleSheet("color: white;")
+        self.main_layout.addWidget(self.dimensions_label)
+
         # Image paths
         self.image_paths = []
 
@@ -73,14 +89,24 @@ class ImageCollageApp(QMainWindow):
         dark_palette.setColor(QPalette.WindowText, Qt.white)
         dark_palette.setColor(QPalette.Base, QColor(25, 25, 25))
         dark_palette.setColor(QPalette.AlternateBase, QColor(43, 43, 43))
-        dark_palette.setColor(QPalette.ToolTipBase, Qt.white)
-        dark_palette.setColor(QPalette.ToolTipText, Qt.white)
+        dark_palette.setColor(QPalette.ToolTipBase, QColor(50, 50, 50))  # Tooltip background
+        dark_palette.setColor(QPalette.ToolTipText, Qt.white)  # Tooltip text
         dark_palette.setColor(QPalette.Text, Qt.white)
         dark_palette.setColor(QPalette.Button, QColor(43, 43, 43))
         dark_palette.setColor(QPalette.ButtonText, Qt.white)
         dark_palette.setColor(QPalette.BrightText, Qt.red)
 
         QApplication.setPalette(dark_palette)
+
+        # Update the tooltips' style to have a dark background and white text
+        self.setStyleSheet("""
+            QToolTip {
+                background-color: #2B2B2B;
+                color: white;
+                border: 1px solid #555555;
+            }
+        """)
+
 
     def center_window(self):
         screen_geometry = QApplication.desktop().screenGeometry()
@@ -94,76 +120,130 @@ class ImageCollageApp(QMainWindow):
         file_dialog.setNameFilter("Images (*.png *.jpg *.jpeg *.bmp)")
 
         if file_dialog.exec_():
-            self.image_paths = file_dialog.selectedFiles()
-            if self.image_paths:
-                # Clear previous previews
-                for i in reversed(range(self.scroll_layout.count())):
-                    widget = self.scroll_layout.itemAt(i).widget()
-                    if widget:
-                        widget.deleteLater()
+            selected_files = file_dialog.selectedFiles()
 
-                # Add new previews
-                for idx, img_path in enumerate(self.image_paths):
-                    pixmap = QPixmap(img_path)
-                    label = QLabel()
+            # Check for unsupported file types
+            valid_files = []
+            for file in selected_files:
+                try:
+                    Image.open(file)  # Attempt to open with PIL
+                    valid_files.append(file)
+                except Exception:
+                    QMessageBox.warning(self, "Unsupported File", f"{file} is not a valid image.")
+            
+            self.image_paths.extend(valid_files)
+            self.update_preview()
 
-                    # Dynamically scale previews to occupy more space
-                    max_width = self.scroll_area.width() // 2
-                    max_height = self.scroll_area.height() // 3
-                    label.setPixmap(pixmap.scaled(
-                        max_width,
-                        max_height,
-                        Qt.KeepAspectRatio,
-                        Qt.SmoothTransformation
-                    ))
-                    self.scroll_layout.addWidget(label, idx // 3, idx % 3)
+    def update_preview(self):
+        if not self.image_paths:
+            return
+
+        # Clear previous previews
+        for i in reversed(range(self.scroll_layout.count())):
+            widget = self.scroll_layout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+
+        # Determine layout arrangement
+        if self.stitch_direction == "horizontal":
+            rows, cols = 1, len(self.image_paths)
+        else:
+            rows, cols = len(self.image_paths), 1
+
+        # Add new previews with remove buttons
+        for idx, img_path in enumerate(self.image_paths):
+            pixmap = QPixmap(img_path)
+            label = QLabel()
+            label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            
+            # Image container
+            image_layout = QVBoxLayout()
+            image_layout.addWidget(label)
+
+            # Add remove button
+            remove_button = QPushButton("Remove")
+            remove_button.setToolTip(f"Remove this image: {img_path}")
+            remove_button.setStyleSheet("background-color: #E74C3C; color: white;")
+            remove_button.clicked.connect(lambda _, path=img_path: self.remove_image(path))
+            image_layout.addWidget(remove_button)
+
+            # Add layout to grid
+            container = QWidget()
+            container.setLayout(image_layout)
+            self.scroll_layout.addWidget(container, idx // cols, idx % cols, alignment=Qt.AlignCenter)
+
+        self.scroll_widget.adjustSize()
+        self.scroll_area.ensureVisible(0, 0)
+        self.update_dimensions_label()
+
+    def remove_image(self, img_path):
+        if img_path in self.image_paths:
+            self.image_paths.remove(img_path)
+            self.update_preview()
 
     def set_stitch_direction(self, direction):
         self.stitch_direction = direction
-        print(f"Stitch direction set to: {self.stitch_direction}")
+        self.update_dimensions_label()
+        self.update_preview()
 
-    def export_collage(self):
+    def update_dimensions_label(self):
         if not self.image_paths:
-            print("No images to stitch!")
+            self.dimensions_label.setText("Calculated Dimensions: -")
             return
 
         try:
-            # Open images
-            images = [Image.open(img_path) for img_path in self.image_paths]
-
-            # Find the smallest width and height among all images
-            min_width = min(img.size[0] for img in images)
+            images = [Image.open(img) for img in self.image_paths]
+            min_width = min(img.size[0] for img in images)  
             min_height = min(img.size[1] for img in images)
 
-            # Resize all images to match the smallest dimensions
+            if self.stitch_direction == "horizontal":
+                total_width = sum(img.size[0] for img in images)
+                dimensions = (total_width, min_height)
+            else:
+                total_height = sum(img.size[1] for img in images)
+                dimensions = (min_width, total_height)
+
+            self.dimensions_label.setText(f"Calculated Dimensions: {dimensions[0]} x {dimensions[1]}")
+        except Exception as e:
+            print(f"Error updating dimensions: {e}")
+
+    def export_collage(self):
+        if not self.image_paths:
+            QMessageBox.warning(self, "No Images", "No images to stitch!")
+            return
+
+        try:
+            # Check if randomization is enabled
+            if self.randomize_checkbox.isChecked():
+                random.shuffle(self.image_paths)
+
+            images = [Image.open(img) for img in self.image_paths]
+
+            # Resize images to smallest dimensions
+            min_width = min(img.size[0] for img in images)
+            min_height = min(img.size[1] for img in images)
             resized_images = [img.resize((min_width, min_height), Image.Resampling.LANCZOS) for img in images]
 
-            # Create collage based on stitch direction
             if self.stitch_direction == "horizontal":
                 total_width = sum(img.size[0] for img in resized_images)
-                max_height = min_height
-                collage = Image.new("RGB", (total_width, max_height), color=(255, 255, 255))
+                collage = Image.new("RGB", (total_width, min_height))
                 x_offset = 0
                 for img in resized_images:
                     collage.paste(img, (x_offset, 0))
                     x_offset += img.size[0]
             else:
-                max_width = min_width
                 total_height = sum(img.size[1] for img in resized_images)
-                collage = Image.new("RGB", (max_width, total_height), color=(255, 255, 255))
+                collage = Image.new("RGB", (min_width, total_height))
                 y_offset = 0
                 for img in resized_images:
                     collage.paste(img, (0, y_offset))
                     y_offset += img.size[1]
 
-            # Automatically generate filename with timestamp
             timestamp = QDateTime.currentDateTime().toString("yyyyMMdd-HHmmss")
             save_path = f"collage-{timestamp}.jpg"
             collage.save(save_path)
-            print(f"Collage saved at {save_path}")
-
         except Exception as e:
-            print(f"An error occurred: {e}")
+            QMessageBox.critical(self, "Error", f"An error occurred while exporting: {e}")
 
 
 if __name__ == "__main__":
