@@ -160,6 +160,23 @@ class ImageCollageApp(QMainWindow):
             image_layout = QVBoxLayout()
             image_layout.addWidget(label)
 
+            # Add swapping buttons
+            if self.stitch_direction == "horizontal":
+                swap_button_left = QPushButton("<")
+                swap_button_right = QPushButton(">")
+            else:
+                swap_button_left = QPushButton("^")
+                swap_button_right = QPushButton("v")
+
+            swap_button_left.setStyleSheet("background-color:#676767; color: white;")
+            swap_button_left.clicked.connect(lambda _, idx=idx: self.shift_image(idx, -1))  # Shift left
+            image_layout.addWidget(swap_button_left)
+
+            swap_button_right.setStyleSheet("background-color: #676767; color: white;")
+            swap_button_right.clicked.connect(lambda _, idx=idx: self.shift_image(idx, 1))  # Shift right
+            image_layout.addWidget(swap_button_right)
+                
+
             # Add remove button
             remove_button = QPushButton("Remove")
             remove_button.setToolTip(f"Remove this image: {img_path}")
@@ -175,6 +192,12 @@ class ImageCollageApp(QMainWindow):
         self.scroll_widget.adjustSize()
         self.scroll_area.ensureVisible(0, 0)
         self.update_dimensions_label()
+
+    def shift_image(self, idx, direction):
+        # Swap the image path at idx with the one at idx + direction
+        if 0 <= idx + direction < len(self.image_paths):
+            self.image_paths[idx], self.image_paths[idx + direction] = self.image_paths[idx + direction], self.image_paths[idx]
+            self.update_preview()  # Re-render the images in the new order
 
     def remove_image(self, img_path):
         if img_path in self.image_paths:
