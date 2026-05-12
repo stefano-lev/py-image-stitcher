@@ -3,6 +3,7 @@
 A Python-based image collage utility that allows users to add multiple images, arrange them either horizontally or vertically, and export the final collage as a single image file. The application provides a simple, interactive interface built with PyQt5.
 
 ## Features
+
 - **Add Images**: Select multiple images from your file system to add to the collage.
 - **Arrange Images**: Choose between horizontal or vertical arrangement for the images.
 - **Randomize Order**: Optionally shuffle the order of the images before stitching.
@@ -11,44 +12,12 @@ A Python-based image collage utility that allows users to add multiple images, a
 - **Dark Theme**
 
 ## Screenshots
+
 ![Screenshot 1](images/screenshot1.jpg)
-*Demonstration of the basic functionality.*
+_Demonstration of the basic functionality._
 
 ![Screenshot 2](images/screenshot2.jpg)
-*Configurable orientation and toggles.*
-
-## Installation
-
-1. Clone this repository to your local machine:
-
-    ```bash
-    git clone https://github.com/your-username/py-image-stitcher.git
-    ```
-
-2. Navigate into the project directory:
-
-    ```bash
-    cd py-image-stitcher
-    ```
-
-3. Install the required dependencies using `pip`:
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-    The `requirements.txt` file should include the necessary libraries:
-
-    ```txt
-    PyQt5
-    Pillow
-    ```
-
-4. Launch the application:
-
-    ```bash
-    python main.py
-    ```
+_Configurable orientation and toggles._
 
 ## Usage
 
