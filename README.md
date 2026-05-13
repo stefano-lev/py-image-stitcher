@@ -1,15 +1,15 @@
 # py-image-stitcher
 
-A Python-based image collage utility that allows users to add multiple images, arrange them either horizontally or vertically, and export the final collage as a single image file. The application provides a simple, interactive interface built with PyQt5.
+A small desktop utility written in Python for quickly combining multiple images into a single stitched image. Supports both a graphical interface built with PyQt5 and a lightweight command-line interface for scripting or batch usage.
 
 ## Features
 
-- **Add Images**: Select multiple images from your file system to add to the collage.
-- **Arrange Images**: Choose between horizontal or vertical arrangement for the images.
-- **Randomize Order**: Optionally shuffle the order of the images before stitching.
-- **Remove Images**: Easily remove images from the collage preview.
-- **Export Collage**: Export the collage to a `.jpg` file with a timestamped filename.
-- **Dark Theme**
+- Stitch images horizontally or vertically
+- Automatic image resizing while preserving aspect ratio
+- Optional image order randomization
+- Timestamped export filenames
+- Dark-themed PyQt5 interface
+- Command-line support for automation and scripting
 
 ## Screenshots
 
@@ -19,14 +19,50 @@ _Demonstration of the basic functionality._
 ![Screenshot 2](images/screenshot2.jpg)
 _Configurable orientation and toggles._
 
-## Usage
+## GUI Usage
 
-1. **Add Images**: Click the "Add Images" button to open a file dialog and select images from your computer.
-2. **Arrange Images**: Choose whether to stitch images **horizontally** or **vertically** using the radio buttons.
-3. **Randomize**: Optionally, check the box to randomize the order of the images in the collage.
-4. **Preview**: Images will be displayed in the selected layout, and you can remove any unwanted images using the "Remove" button next to each preview.
-5. **Export Collage**: When you're satisfied with the arrangement, click "Export Collage" to generate a final image and save it to your computer.
+Running the program normally launches the graphical interface:
+
+    python main.py
+
+Inside the GUI you can:
+
+- Add multiple images
+- Preview them before exporting
+- Switch between horizontal and vertical stitching
+- Rearrange image order using arrow buttons
+- Randomize image order before export
+
+Exported files are automatically saved with a timestamped filename such as:
+
+    collage-20260513-143055.jpg
+
+## CLI Usage
+
+The project also supports a command-line mode for faster workflows or scripting.
+
+Basic usage:
+
+    python main.py image1.jpg image2.jpg image3.jpg
+
+Example with additional arguments:
+
+    python main.py image1.jpg image2.jpg --vertical --randomize -o final.jpg
+
+You can use the `--help` arg to see a complete list of supported arguments and what they do.
+
+## Dependencies
+
+- Python 3.10+
+- PyQt5
+- Pillow
+
+Install dependencies with:
+
+    pip install PyQt5 Pillow
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
+
+See the [LICENSE](LICENSE) file for details.
